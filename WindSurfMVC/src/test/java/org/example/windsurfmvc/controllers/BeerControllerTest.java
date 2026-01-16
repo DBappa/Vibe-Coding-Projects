@@ -3,6 +3,7 @@ package org.example.windsurfmvc.controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.windsurfmvc.TestUtils;
 import org.example.windsurfmvc.entities.Beer;
+import org.example.windsurfmvc.exceptions.ResourceNotFoundException;
 import org.example.windsurfmvc.services.BeerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 
@@ -81,6 +83,44 @@ class BeerControllerTest {
                 .content(objectMapper.writeValueAsString(testBeer)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.beerName", is(testBeer.getBeerName())));
+    }
+
+    @Test
+    void updateBeer() throws Exception {
+        // given
+        Beer updatedBeer = TestUtils.createTestBeer();
+        updatedBeer.setId(1);
+        updatedBeer.setBeerName("Updated Beer");
+        updatedBeer.setPrice(new BigDecimal("12.99"));
+
+        given(beerService.updateBeer(anyInt(), any(Beer.class))).willReturn(updatedBeer);
+
+        // when & then
+        mockMvc.perform(put("/api/beers/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updatedBeer)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.beerName", is(updatedBeer.getBeerName())))
+                .andExpect(jsonPath("$.price", is(12.99)));
+
+        verify(beerService, times(1)).updateBeer(eq(1), any(Beer.class));
+    }
+
+    @Test
+    void updateBeer_WithInvalidId() throws Exception {
+        // given
+        Beer updatedBeer = TestUtils.createTestBeer();
+        updatedBeer.setId(999);
+
+        given(beerService.updateBeer(eq(999), any(Beer.class)))
+                .willThrow(new ResourceNotFoundException("Beer not found with id: " + 999));
+
+        // when & then
+        mockMvc.perform(put("/api/beers/999")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updatedBeer)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message", containsString("Beer not found with id: 999")));
     }
 
     @Test

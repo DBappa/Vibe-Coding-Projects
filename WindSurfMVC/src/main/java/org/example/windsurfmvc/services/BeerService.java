@@ -8,5 +8,6 @@ public interface BeerService {
     List<Beer> getAllBeers();
     Beer getBeerById(Integer id);
     Beer saveBeer(Beer beer);
+    Beer updateBeer(Integer id, Beer beer);
     void deleteBeer(Integer id);
 }
